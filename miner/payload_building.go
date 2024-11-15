@@ -42,6 +42,9 @@ type BuildPayloadArgs struct {
 	Withdrawals  types.Withdrawals     // The provided withdrawals
 	BeaconRoot   *common.Hash          // The provided beaconRoot (Cancun)
 	Version      engine.PayloadVersion // Versioning byte for payload id calculation.
+	GasPrice     []uint64              // The provided gas prices of transactions
+	GasUsed      []uint64              // The provided gas used while executing these transactions
+	GasLimit     *uint64               // Optimism addition: override gas limit of the block to build
 }
 
 // Id computes an 8-byte identifier by hashing the components of the payload arguments.
@@ -189,6 +192,7 @@ func (miner *Miner) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 		withdrawals: args.Withdrawals,
 		beaconRoot:  args.BeaconRoot,
 		noTxs:       true,
+		gasUsed:     args.GasUsed,
 	}
 	empty := miner.generateWork(emptyParams)
 	if empty.err != nil {
@@ -220,6 +224,7 @@ func (miner *Miner) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 			withdrawals: args.Withdrawals,
 			beaconRoot:  args.BeaconRoot,
 			noTxs:       false,
+			gasUsed:     args.GasUsed,
 		}
 
 		for {

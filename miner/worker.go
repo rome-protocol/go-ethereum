@@ -37,9 +37,10 @@ import (
 )
 
 var (
-	errBlockInterruptedByNewHead  = errors.New("new head arrived while building block")
-	errBlockInterruptedByRecommit = errors.New("recommit interrupt while building block")
-	errBlockInterruptedByTimeout  = errors.New("timeout while building block")
+	errBlockInterruptedByNewHead      = errors.New("new head arrived while building block")
+	errBlockInterruptedByRecommit     = errors.New("recommit interrupt while building block")
+	errBlockInterruptedByTimeout      = errors.New("timeout while building block")
+	errBlockInterruptedByWrongGasUsed = errors.New("romeGasUsed has wrong dimension")
 )
 
 // environment is the worker's current environment and holds all
@@ -54,6 +55,8 @@ type environment struct {
 	header   *types.Header
 	txs      []*types.Transaction
 	receipts []*types.Receipt
+	gasPrice []uint64
+	gasUsed  []uint64
 	sidecars []*types.BlobTxSidecar
 	blobs    int
 }
@@ -78,6 +81,8 @@ type newPayloadResult struct {
 // generateParams wraps various settings for generating sealing task.
 type generateParams struct {
 	timestamp   uint64            // The timestamp for sealing task
+	gasPrice    []uint64          // Rome gas price override
+	gasUsed     []uint64          // Rome gas used override
 	forceTime   bool              // Flag whether the given timestamp is immutable or not
 	parentHash  common.Hash       // Parent block hash, empty means the latest chain head
 	coinbase    common.Address    // The fee recipient address for including transaction
@@ -191,7 +196,7 @@ func (miner *Miner) prepareWork(genParams *generateParams) (*environment, error)
 	// Could potentially happen if starting to mine in an odd state.
 	// Note genParams.coinbase can be different with header.Coinbase
 	// since clique algorithm can modify the coinbase field in header.
-	env, err := miner.makeEnv(parent, header, genParams.coinbase)
+	env, err := miner.makeEnv(parent, header, genParams)
 	if err != nil {
 		log.Error("Failed to create sealing context", "err", err)
 		return nil, err
@@ -205,7 +210,7 @@ func (miner *Miner) prepareWork(genParams *generateParams) (*environment, error)
 }
 
 // makeEnv creates a new environment for the sealing block.
-func (miner *Miner) makeEnv(parent *types.Header, header *types.Header, coinbase common.Address) (*environment, error) {
+func (miner *Miner) makeEnv(parent *types.Header, header *types.Header, genParams *generateParams) (*environment, error) {
 	// Retrieve the parent state to execute on top and start a prefetcher for
 	// the miner to speed block sealing up a bit.
 	state, err := miner.chain.StateAt(parent.Root)
@@ -216,12 +221,13 @@ func (miner *Miner) makeEnv(parent *types.Header, header *types.Header, coinbase
 	return &environment{
 		signer:   types.MakeSigner(miner.chainConfig, header.Number, header.Time),
 		state:    state,
-		coinbase: coinbase,
+		coinbase: genParams.coinbase,
 		header:   header,
+		gasUsed:  genParams.gasUsed,
 	}, nil
 }
 
-func (miner *Miner) commitTransaction(env *environment, tx *types.Transaction) error {
+func (miner *Miner) commitTransaction(env *environment, tx *types.Transaction, romeGasUsed uint64) error {
 	if tx.Type() == types.BlobTxType {
 		return miner.commitBlobTransaction(env, tx)
 	}
@@ -279,6 +285,8 @@ func (miner *Miner) commitTransactions(env *environment, plainTxs, blobTxs *tran
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(gasLimit)
 	}
+	var index int = 0
+
 	for {
 		// Check interruption signal and abort building if it's fired.
 		if interrupt != nil {
@@ -353,7 +361,15 @@ func (miner *Miner) commitTransactions(env *environment, plainTxs, blobTxs *tran
 		// Start executing the transaction
 		env.state.SetTxContext(tx.Hash(), env.tcount)
 
-		err := miner.commitTransaction(env, tx)
+		var gasUsed uint64
+		if len(env.gasUsed) < index+1 {
+			return errBlockInterruptedByWrongGasUsed
+		} else {
+			gasUsed = env.gasUsed[index]
+		}
+
+		index++
+		err := miner.commitTransaction(env, tx, gasUsed)
 		switch {
 		case errors.Is(err, core.ErrNonceTooLow):
 			// New head notification data race between the transaction pool and miner, shift
