@@ -94,7 +94,7 @@ func TestGeneratePOSChain(t *testing.T) {
 			Gas:      params.TxGas,
 			GasPrice: new(big.Int).Add(gen.BaseFee(), common.Big1),
 		})
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 
 		// Add withdrawals.
 		if i == 1 {
@@ -215,14 +215,14 @@ func ExampleGenerateChain() {
 		case 0:
 			// In block 1, addr1 sends addr2 some ether.
 			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
-			gen.AddTx(tx)
+			gen.AddTx(tx, 0)
 		case 1:
 			// In block 2, addr1 sends some more ether to addr2.
 			// addr2 passes it on to addr3.
 			tx1, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(1000), params.TxGas, nil, nil), signer, key1)
 			tx2, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr3, big.NewInt(1000), params.TxGas, nil, nil), signer, key2)
-			gen.AddTx(tx1)
-			gen.AddTx(tx2)
+			gen.AddTx(tx1, 0)
+			gen.AddTx(tx2, 0)
 		case 2:
 			// Block 3 is empty but was mined by addr3.
 			gen.SetCoinbase(addr3)

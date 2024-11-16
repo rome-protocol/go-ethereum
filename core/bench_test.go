@@ -97,7 +97,7 @@ func genValueTx(nbytes int) func(int, *BlockGen) {
 			Data:     data,
 			GasPrice: gasPrice,
 		})
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 	}
 }
 
@@ -152,7 +152,7 @@ func genTxRing(naccounts int) func(int, *BlockGen) {
 			if err != nil {
 				panic(err)
 			}
-			gen.AddTx(tx)
+			gen.AddTx(tx, 0)
 			from = to
 		}
 	}

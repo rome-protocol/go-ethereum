@@ -163,7 +163,7 @@ func testBlockChainImport(chain types.Blocks, blockchain *BlockChain) error {
 		if err != nil {
 			return err
 		}
-		receipts, _, usedGas, err := blockchain.processor.Process(block, statedb, vm.Config{})
+		receipts, _, usedGas, err := blockchain.processor.Process(block, statedb, vm.Config{}, make([]uint64, 0))
 		if err != nil {
 			blockchain.reportBlock(block, receipts, err)
 			return err
@@ -753,7 +753,7 @@ func testFastVsFullChains(t *testing.T, scheme string) {
 				if err != nil {
 					panic(err)
 				}
-				block.AddTx(tx)
+				block.AddTx(tx, 0)
 			}
 		}
 		// If the block number is a multiple of 5, add an uncle to the block
@@ -1022,14 +1022,14 @@ func testChainTxReorgs(t *testing.T, scheme string) {
 		case 0:
 			pastDrop, _ = types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr2, big.NewInt(1000), params.TxGas, gen.header.BaseFee, nil), signer, key2)
 
-			gen.AddTx(pastDrop)  // This transaction will be dropped in the fork from below the split point
-			gen.AddTx(postponed) // This transaction will be postponed till block #3 in the fork
+			gen.AddTx(pastDrop, 0)  // This transaction will be dropped in the fork from below the split point
+			gen.AddTx(postponed, 0) // This transaction will be postponed till block #3 in the fork
 
 		case 2:
 			freshDrop, _ = types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr2, big.NewInt(1000), params.TxGas, gen.header.BaseFee, nil), signer, key2)
 
-			gen.AddTx(freshDrop) // This transaction will be dropped in the fork from exactly at the split point
-			gen.AddTx(swapped)   // This transaction will be swapped out at the exact height
+			gen.AddTx(freshDrop, 0) // This transaction will be dropped in the fork from exactly at the split point
+			gen.AddTx(swapped, 0)   // This transaction will be swapped out at the exact height
 
 			gen.OffsetTime(9) // Lower the block difficulty to simulate a weaker chain
 		}
@@ -1047,18 +1047,18 @@ func testChainTxReorgs(t *testing.T, scheme string) {
 		switch i {
 		case 0:
 			pastAdd, _ = types.SignTx(types.NewTransaction(gen.TxNonce(addr3), addr3, big.NewInt(1000), params.TxGas, gen.header.BaseFee, nil), signer, key3)
-			gen.AddTx(pastAdd) // This transaction needs to be injected during reorg
+			gen.AddTx(pastAdd, 0) // This transaction needs to be injected during reorg
 
 		case 2:
-			gen.AddTx(postponed) // This transaction was postponed from block #1 in the original chain
-			gen.AddTx(swapped)   // This transaction was swapped from the exact current spot in the original chain
+			gen.AddTx(postponed, 0) // This transaction was postponed from block #1 in the original chain
+			gen.AddTx(swapped, 0)   // This transaction was swapped from the exact current spot in the original chain
 
 			freshAdd, _ = types.SignTx(types.NewTransaction(gen.TxNonce(addr3), addr3, big.NewInt(1000), params.TxGas, gen.header.BaseFee, nil), signer, key3)
-			gen.AddTx(freshAdd) // This transaction will be added exactly at reorg time
+			gen.AddTx(freshAdd, 0) // This transaction will be added exactly at reorg time
 
 		case 3:
 			futureAdd, _ = types.SignTx(types.NewTransaction(gen.TxNonce(addr3), addr3, big.NewInt(1000), params.TxGas, gen.header.BaseFee, nil), signer, key3)
-			gen.AddTx(futureAdd) // This transaction will be added after a full reorg
+			gen.AddTx(futureAdd, 0) // This transaction will be added after a full reorg
 		}
 	})
 	if _, err := blockchain.InsertChain(chain); err != nil {
@@ -1121,7 +1121,7 @@ func testLogReorgs(t *testing.T, scheme string) {
 			if err != nil {
 				t.Fatalf("failed to create tx: %v", err)
 			}
-			gen.AddTx(tx)
+			gen.AddTx(tx, 0)
 		}
 	})
 	if _, err := blockchain.InsertChain(chain); err != nil {
@@ -1189,7 +1189,7 @@ func testLogRebirth(t *testing.T, scheme string) {
 				if err != nil {
 					t.Fatalf("failed to create tx: %v", err)
 				}
-				gen.AddTx(tx)
+				gen.AddTx(tx, 0)
 			}
 		}
 	})
@@ -1215,7 +1215,7 @@ func testLogRebirth(t *testing.T, scheme string) {
 			if err != nil {
 				t.Fatalf("failed to create tx: %v", err)
 			}
-			gen.AddTx(tx)
+			gen.AddTx(tx, 0)
 		}
 		gen.OffsetTime(-9) // higher block difficulty
 	})
@@ -1273,7 +1273,7 @@ func testSideLogRebirth(t *testing.T, scheme string) {
 			if err != nil {
 				t.Fatalf("failed to create tx: %v", err)
 			}
-			gen.AddTx(tx)
+			gen.AddTx(tx, 0)
 		}
 	})
 	if _, err := blockchain.InsertChain(sideChain); err != nil {
@@ -1362,7 +1362,7 @@ func testReorgSideEvent(t *testing.T, scheme string) {
 		if err != nil {
 			t.Fatalf("failed to create tx: %v", err)
 		}
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 	})
 	chainSideCh := make(chan ChainSideEvent, 64)
 	blockchain.SubscribeChainSideEvent(chainSideCh)
@@ -1502,31 +1502,31 @@ func testEIP155Transition(t *testing.T, scheme string) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			block.AddTx(tx)
+			block.AddTx(tx, 0)
 		case 2:
 			tx, err = basicTx(types.HomesteadSigner{})
 			if err != nil {
 				t.Fatal(err)
 			}
-			block.AddTx(tx)
+			block.AddTx(tx, 0)
 
 			tx, err = basicTx(types.LatestSigner(gspec.Config))
 			if err != nil {
 				t.Fatal(err)
 			}
-			block.AddTx(tx)
+			block.AddTx(tx, 0)
 		case 3:
 			tx, err = basicTx(types.HomesteadSigner{})
 			if err != nil {
 				t.Fatal(err)
 			}
-			block.AddTx(tx)
+			block.AddTx(tx, 0)
 
 			tx, err = basicTx(types.LatestSigner(gspec.Config))
 			if err != nil {
 				t.Fatal(err)
 			}
-			block.AddTx(tx)
+			block.AddTx(tx, 0)
 		}
 	})
 
@@ -1572,7 +1572,7 @@ func testEIP155Transition(t *testing.T, scheme string) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			block.AddTx(tx)
+			block.AddTx(tx, 0)
 		}
 	})
 	_, err := blockchain.InsertChain(blocks)
@@ -1620,7 +1620,7 @@ func testEIP161AccountRemoval(t *testing.T, scheme string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		block.AddTx(tx)
+		block.AddTx(tx, 0)
 	})
 	// account must exist pre eip 161
 	blockchain, _ := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfigWithScheme(scheme), nil, gspec, nil, ethash.NewFaker(), vm.Config{}, nil, nil)
@@ -2060,7 +2060,7 @@ func testSideImport(t *testing.T, numCanonBlocksInSidechain, blocksBetweenCommon
 		if err != nil {
 			t.Fatalf("failed to create tx: %v", err)
 		}
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 		if int(gen.header.Number.Uint64()) >= mergeBlock {
 			gen.SetPoS()
 		}
@@ -2648,7 +2648,7 @@ func benchmarkLargeNumberOfValueToNonexisting(b *testing.B, numTxs, numBlocks in
 			if err != nil {
 				b.Error(err)
 			}
-			block.AddTx(tx)
+			block.AddTx(tx, 0)
 		}
 	}
 
@@ -2837,11 +2837,11 @@ func testDeleteCreateRevert(t *testing.T, scheme string) {
 		// One transaction to AAAA
 		tx, _ := types.SignTx(types.NewTransaction(0, aa,
 			big.NewInt(0), 50000, b.header.BaseFee, nil), types.HomesteadSigner{}, key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 		// One transaction to BBBB
 		tx, _ = types.SignTx(types.NewTransaction(1, bb,
 			big.NewInt(0), 100000, b.header.BaseFee, nil), types.HomesteadSigner{}, key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 	})
 	// Import the canonical chain
 	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfigWithScheme(scheme), nil, gspec, nil, engine, vm.Config{}, nil, nil)
@@ -2950,11 +2950,11 @@ func testDeleteRecreateSlots(t *testing.T, scheme string) {
 		// One transaction to AA, to kill it
 		tx, _ := types.SignTx(types.NewTransaction(0, aa,
 			big.NewInt(0), 50000, b.header.BaseFee, nil), types.HomesteadSigner{}, key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 		// One transaction to BB, to recreate AA
 		tx, _ = types.SignTx(types.NewTransaction(1, bb,
 			big.NewInt(0), 100000, b.header.BaseFee, nil), types.HomesteadSigner{}, key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 	})
 	// Import the canonical chain
 	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfigWithScheme(scheme), nil, gspec, nil, engine, vm.Config{
@@ -3032,11 +3032,11 @@ func testDeleteRecreateAccount(t *testing.T, scheme string) {
 		// One transaction to AA, to kill it
 		tx, _ := types.SignTx(types.NewTransaction(0, aa,
 			big.NewInt(0), 50000, b.header.BaseFee, nil), types.HomesteadSigner{}, key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 		// One transaction to AA, to recreate it (but without storage
 		tx, _ = types.SignTx(types.NewTransaction(1, aa,
 			big.NewInt(1), 100000, b.header.BaseFee, nil), types.HomesteadSigner{}, key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 	})
 	// Import the canonical chain
 	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfigWithScheme(scheme), nil, gspec, nil, engine, vm.Config{
@@ -3199,16 +3199,16 @@ func testDeleteRecreateSlotsAcrossManyBlocks(t *testing.T, scheme string) {
 
 		b.SetCoinbase(common.Address{1})
 		if i%2 == 0 {
-			b.AddTx(newDestruct(exp, b))
+			b.AddTx(newDestruct(exp, b), 0)
 		}
 		if i%3 == 0 {
-			b.AddTx(newResurrect(exp, b))
+			b.AddTx(newResurrect(exp, b), 0)
 		}
 		if i%5 == 0 {
-			b.AddTx(newDestruct(exp, b))
+			b.AddTx(newDestruct(exp, b), 0)
 		}
 		if i%7 == 0 {
-			b.AddTx(newResurrect(exp, b))
+			b.AddTx(newResurrect(exp, b), 0)
 		}
 		expectations = append(expectations, exp)
 		current = exp
@@ -3347,7 +3347,7 @@ func testInitThenFailCreateContract(t *testing.T, scheme string) {
 		// One transaction to BB
 		tx, _ := types.SignTx(types.NewTransaction(nonce, bb,
 			big.NewInt(0), 100000, b.header.BaseFee, nil), types.HomesteadSigner{}, key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 		nonce++
 	})
 
@@ -3438,7 +3438,7 @@ func testEIP2718Transition(t *testing.T, scheme string) {
 				StorageKeys: []common.Hash{{0}},
 			}},
 		})
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 	})
 
 	// Import the canonical chain
@@ -3534,7 +3534,7 @@ func testEIP1559Transition(t *testing.T, scheme string) {
 		tx := types.NewTx(txdata)
 		tx, _ = types.SignTx(tx, signer, key1)
 
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 	})
 	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfigWithScheme(scheme), nil, gspec, nil, engine, vm.Config{}, nil, nil)
 	if err != nil {
@@ -3586,7 +3586,7 @@ func testEIP1559Transition(t *testing.T, scheme string) {
 		tx := types.NewTx(txdata)
 		tx, _ = types.SignTx(tx, signer, key2)
 
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 	})
 
 	if n, err := chain.InsertChain(blocks); err != nil {
@@ -3643,7 +3643,7 @@ func testSetCanonical(t *testing.T, scheme string) {
 		if err != nil {
 			panic(err)
 		}
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 	})
 	diskdb, _ := rawdb.NewDatabaseWithFreezer(rawdb.NewMemoryDatabase(), t.TempDir(), "", false)
 	defer diskdb.Close()
@@ -3664,7 +3664,7 @@ func testSetCanonical(t *testing.T, scheme string) {
 		if err != nil {
 			panic(err)
 		}
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 	})
 	for _, block := range side {
 		err := chain.InsertBlockWithoutSetHead(block)
@@ -3880,14 +3880,14 @@ func testCreateThenDelete(t *testing.T, config *params.ChainConfig) {
 			Data:     initCode,
 		})
 		nonce++
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 		tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{
 			Nonce:    nonce,
 			GasPrice: new(big.Int).Set(fee),
 			Gas:      100000,
 			To:       &destAddress,
 		})
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 		nonce++
 	})
 	// Import the canonical chain
@@ -3969,7 +3969,7 @@ func TestDeleteThenCreate(t *testing.T) {
 				Data:     factoryBIN,
 			})
 			nonce++
-			b.AddTx(tx)
+			b.AddTx(tx, 0)
 
 			data := common.Hex2Bytes("00774360000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000a76080604052348015600f57600080fd5b5060646000819055506081806100266000396000f3fe608060405260043610601f5760003560e01c80632b68b9c614602a576025565b36602557005b600080fd5b60306032565b005b3373ffffffffffffffffffffffffffffffffffffffff16fffea2646970667358221220ab749f5ed1fcb87bda03a74d476af3f074bba24d57cb5a355e8162062ad9a4e664736f6c6343000807003300000000000000000000000000000000000000000000000000")
 			tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{
@@ -3979,7 +3979,7 @@ func TestDeleteThenCreate(t *testing.T) {
 				To:       &factoryAddr,
 				Data:     data,
 			})
-			b.AddTx(tx)
+			b.AddTx(tx, 0)
 			nonce++
 		} else {
 			// Block 2
@@ -3991,7 +3991,7 @@ func TestDeleteThenCreate(t *testing.T) {
 				Data:     common.Hex2Bytes("2b68b9c6"), // destruct
 			})
 			nonce++
-			b.AddTx(tx)
+			b.AddTx(tx, 0)
 
 			data := common.Hex2Bytes("00774360000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000a76080604052348015600f57600080fd5b5060646000819055506081806100266000396000f3fe608060405260043610601f5760003560e01c80632b68b9c614602a576025565b36602557005b600080fd5b60306032565b005b3373ffffffffffffffffffffffffffffffffffffffff16fffea2646970667358221220ab749f5ed1fcb87bda03a74d476af3f074bba24d57cb5a355e8162062ad9a4e664736f6c6343000807003300000000000000000000000000000000000000000000000000")
 			tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{
@@ -4001,7 +4001,7 @@ func TestDeleteThenCreate(t *testing.T) {
 				To:       &factoryAddr, // re-creation
 				Data:     data,
 			})
-			b.AddTx(tx)
+			b.AddTx(tx, 0)
 			nonce++
 		}
 	})
@@ -4078,7 +4078,7 @@ func TestTransientStorageReset(t *testing.T) {
 			Data:     initCode,
 		})
 		nonce++
-		b.AddTxWithVMConfig(tx, vmConfig)
+		b.AddTxWithVMConfig(tx, vmConfig, 0)
 
 		tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{
 			Nonce:    nonce,
@@ -4086,7 +4086,7 @@ func TestTransientStorageReset(t *testing.T) {
 			Gas:      100000,
 			To:       &destAddress,
 		})
-		b.AddTxWithVMConfig(tx, vmConfig)
+		b.AddTxWithVMConfig(tx, vmConfig, 0)
 		nonce++
 	})
 
@@ -4184,7 +4184,7 @@ func TestEIP3651(t *testing.T) {
 		tx := types.NewTx(txdata)
 		tx, _ = types.SignTx(tx, signer, key1)
 
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 	})
 	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), nil, nil, gspec, nil, engine, vm.Config{Tracer: logger.NewMarkdownLogger(&logger.Config{}, os.Stderr).Hooks()}, nil, nil)
 	if err != nil {

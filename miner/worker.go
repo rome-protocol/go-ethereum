@@ -105,7 +105,7 @@ func (miner *Miner) generateWork(params *generateParams) *newPayloadResult {
 		})
 		defer timer.Stop()
 
-		err := miner.fillTransactions(interrupt, work)
+		err := miner.fillTransactions(interrupt, work, params)
 		if errors.Is(err, errBlockInterruptedByTimeout) {
 			log.Warn("Block building is interrupted", "allowance", common.PrettyDuration(miner.config.Recommit))
 		}
@@ -227,11 +227,11 @@ func (miner *Miner) makeEnv(parent *types.Header, header *types.Header, genParam
 	}, nil
 }
 
-func (miner *Miner) commitTransaction(env *environment, tx *types.Transaction, romeGasUsed uint64) error {
+func (miner *Miner) commitTransaction(env *environment, tx *types.Transaction, index int, romeGasUsed uint64) error {
 	if tx.Type() == types.BlobTxType {
-		return miner.commitBlobTransaction(env, tx)
+		return miner.commitBlobTransaction(env, tx, index, romeGasUsed)
 	}
-	receipt, err := miner.applyTransaction(env, tx)
+	receipt, err := miner.applyTransaction(env, tx, index, romeGasUsed)
 	if err != nil {
 		return err
 	}
@@ -241,7 +241,7 @@ func (miner *Miner) commitTransaction(env *environment, tx *types.Transaction, r
 	return nil
 }
 
-func (miner *Miner) commitBlobTransaction(env *environment, tx *types.Transaction) error {
+func (miner *Miner) commitBlobTransaction(env *environment, tx *types.Transaction, index int, romeGasUsed uint64) error {
 	sc := tx.BlobTxSidecar()
 	if sc == nil {
 		panic("blob transaction without blobs in miner")
@@ -253,7 +253,7 @@ func (miner *Miner) commitBlobTransaction(env *environment, tx *types.Transactio
 	if (env.blobs+len(sc.Blobs))*params.BlobTxBlobGasPerBlob > params.MaxBlobGasPerBlock {
 		return errors.New("max data blobs reached")
 	}
-	receipt, err := miner.applyTransaction(env, tx)
+	receipt, err := miner.applyTransaction(env, tx, index, romeGasUsed)
 	if err != nil {
 		return err
 	}
@@ -267,12 +267,12 @@ func (miner *Miner) commitBlobTransaction(env *environment, tx *types.Transactio
 }
 
 // applyTransaction runs the transaction. If execution fails, state and gas pool are reverted.
-func (miner *Miner) applyTransaction(env *environment, tx *types.Transaction) (*types.Receipt, error) {
+func (miner *Miner) applyTransaction(env *environment, tx *types.Transaction, index int, romeGasUsed uint64) (*types.Receipt, error) {
 	var (
 		snap = env.state.Snapshot()
 		gp   = env.gasPool.Gas()
 	)
-	receipt, _, err := core.ApplyTransaction(miner.chainConfig, miner.chain, &env.coinbase, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, vm.Config{})
+	receipt, _, err := core.ApplyTransaction(miner.chainConfig, miner.chain, &env.coinbase, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, vm.Config{}, romeGasUsed)
 	if err != nil {
 		env.state.RevertToSnapshot(snap)
 		env.gasPool.SetGas(gp)
@@ -280,7 +280,7 @@ func (miner *Miner) applyTransaction(env *environment, tx *types.Transaction) (*
 	return receipt, err
 }
 
-func (miner *Miner) commitTransactions(env *environment, plainTxs, blobTxs *transactionsByPriceAndNonce, interrupt *atomic.Int32) error {
+func (miner *Miner) commitTransactions(env *environment, plainTxs, blobTxs *transactionsByPriceAndNonce, interrupt *atomic.Int32, romeGasUsed []uint64) error {
 	gasLimit := env.header.GasLimit
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(gasLimit)
@@ -368,8 +368,8 @@ func (miner *Miner) commitTransactions(env *environment, plainTxs, blobTxs *tran
 			gasUsed = env.gasUsed[index]
 		}
 
+		err := miner.commitTransaction(env, tx, index, gasUsed)
 		index++
-		err := miner.commitTransaction(env, tx, gasUsed)
 		switch {
 		case errors.Is(err, core.ErrNonceTooLow):
 			// New head notification data race between the transaction pool and miner, shift
@@ -393,7 +393,7 @@ func (miner *Miner) commitTransactions(env *environment, plainTxs, blobTxs *tran
 // fillTransactions retrieves the pending transactions from the txpool and fills them
 // into the given sealing block. The transaction selection and ordering strategy can
 // be customized with the plugin in the future.
-func (miner *Miner) fillTransactions(interrupt *atomic.Int32, env *environment) error {
+func (miner *Miner) fillTransactions(interrupt *atomic.Int32, env *environment, params *generateParams) error {
 	miner.confMu.RLock()
 	tip := miner.config.GasPrice
 	miner.confMu.RUnlock()
@@ -433,7 +433,7 @@ func (miner *Miner) fillTransactions(interrupt *atomic.Int32, env *environment) 
 		plainTxs := newTransactionsByPriceAndNonce(env.signer, localPlainTxs, env.header.BaseFee)
 		blobTxs := newTransactionsByPriceAndNonce(env.signer, localBlobTxs, env.header.BaseFee)
 
-		if err := miner.commitTransactions(env, plainTxs, blobTxs, interrupt); err != nil {
+		if err := miner.commitTransactions(env, plainTxs, blobTxs, interrupt, params.gasUsed); err != nil {
 			return err
 		}
 	}
@@ -441,7 +441,7 @@ func (miner *Miner) fillTransactions(interrupt *atomic.Int32, env *environment) 
 		plainTxs := newTransactionsByPriceAndNonce(env.signer, remotePlainTxs, env.header.BaseFee)
 		blobTxs := newTransactionsByPriceAndNonce(env.signer, remoteBlobTxs, env.header.BaseFee)
 
-		if err := miner.commitTransactions(env, plainTxs, blobTxs, interrupt); err != nil {
+		if err := miner.commitTransactions(env, plainTxs, blobTxs, interrupt, params.gasUsed); err != nil {
 			return err
 		}
 	}
