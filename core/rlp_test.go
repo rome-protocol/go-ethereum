@@ -52,7 +52,7 @@ func getBlock(transactions int, uncles int, dataSize int) *types.Block {
 				for i := 0; i < transactions; i++ {
 					tx, _ := types.SignTx(types.NewTransaction(uint64(i), aa,
 						big.NewInt(0), 50000, b.header.BaseFee, make([]byte, dataSize)), types.HomesteadSigner{}, key)
-					b.AddTx(tx)
+					b.AddTx(tx, 0)
 				}
 				for i := 0; i < uncles; i++ {
 					b.AddUncle(&types.Header{ParentHash: b.PrevBlock(n - 1 - i).Hash(), Number: big.NewInt(int64(n - i))})

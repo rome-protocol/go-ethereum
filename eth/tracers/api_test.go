@@ -182,7 +182,7 @@ func (b *testBackend) StateAtTransaction(ctx context.Context, block *types.Block
 			return tx, context, statedb, release, nil
 		}
 		vmenv := vm.NewEVM(context, txContext, statedb, b.chainConfig, vm.Config{})
-		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas())); err != nil {
+		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas()), 0); err != nil {
 			return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
 		}
 		statedb.Finalise(vmenv.ChainConfig().IsEIP158(block.Number()))
@@ -218,7 +218,7 @@ func TestTraceCall(t *testing.T) {
 			GasPrice: b.BaseFee(),
 			Data:     nil}),
 			signer, accounts[0].key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 		nonce++
 
 		if i == genBlocks-2 {
@@ -231,7 +231,7 @@ func TestTraceCall(t *testing.T) {
 				GasPrice: b.BaseFee(),
 				Data:     nil}),
 				signer, accounts[0].key)
-			b.AddTx(tx)
+			b.AddTx(tx, 0)
 			nonce++
 
 			// Transfer from account[0] to account[1] again
@@ -243,7 +243,7 @@ func TestTraceCall(t *testing.T) {
 				GasPrice: b.BaseFee(),
 				Data:     nil}),
 				signer, accounts[0].key)
-			b.AddTx(tx)
+			b.AddTx(tx, 0)
 			nonce++
 		}
 	})
@@ -434,7 +434,7 @@ func TestTraceTransaction(t *testing.T) {
 			GasPrice: b.BaseFee(),
 			Data:     nil}),
 			signer, accounts[0].key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 		target = tx.Hash()
 	})
 	defer backend.chain.Stop()
@@ -491,7 +491,7 @@ func TestTraceBlock(t *testing.T) {
 			GasPrice: b.BaseFee(),
 			Data:     nil}),
 			signer, accounts[0].key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 		txHash = tx.Hash()
 	})
 	defer backend.chain.Stop()
@@ -588,7 +588,7 @@ func TestTracingWithOverrides(t *testing.T) {
 			GasPrice: b.BaseFee(),
 			Data:     nil}),
 			signer, accounts[0].key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 	})
 	defer backend.chain.Stop()
 	api := NewAPI(backend)
@@ -948,7 +948,7 @@ func TestTraceChain(t *testing.T) {
 		//    fee:   0 wei
 		for j := 0; j < i+1; j++ {
 			tx, _ := types.SignTx(types.NewTransaction(nonce, accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
-			b.AddTx(tx)
+			b.AddTx(tx, 0)
 			nonce += 1
 		}
 	})

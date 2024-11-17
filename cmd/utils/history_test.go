@@ -74,7 +74,7 @@ func TestHistoryImportAndExport(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error creating tx: %v", err)
 		}
-		g.AddTx(tx)
+		g.AddTx(tx, 0)
 	})
 
 	// Initialize BlockChain.

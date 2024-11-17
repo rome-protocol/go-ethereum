@@ -211,7 +211,7 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 			Gas:      50000,
 			GasPrice: big.NewInt(params.InitialBaseFee),
 		})
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 		tx, _ = types.SignNewTx(key, signer, &types.AccessListTx{
 			ChainID:  genesis.Config.ChainID,
 			Nonce:    uint64(1),
@@ -224,7 +224,7 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 				StorageKeys: []common.Hash{{0}},
 			}},
 		})
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 	})
 	// start node
 	if err := stack.Start(); err != nil {
@@ -305,11 +305,11 @@ func TestGraphQLConcurrentResolvers(t *testing.T) {
 	var tx *types.Transaction
 	handler, chain := newGQLService(t, stack, false, genesis, 1, func(i int, gen *core.BlockGen) {
 		tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{To: &dad, Gas: 100000, GasPrice: big.NewInt(params.InitialBaseFee)})
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 		tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{To: &dad, Nonce: 1, Gas: 100000, GasPrice: big.NewInt(params.InitialBaseFee)})
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 		tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{To: &dad, Nonce: 2, Gas: 100000, GasPrice: big.NewInt(params.InitialBaseFee)})
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 	})
 	// start node
 	if err := stack.Start(); err != nil {
@@ -391,7 +391,7 @@ func TestWithdrawals(t *testing.T) {
 
 	handler, _ := newGQLService(t, stack, true, genesis, 1, func(i int, gen *core.BlockGen) {
 		tx, _ := types.SignNewTx(key, signer, &types.LegacyTx{To: &common.Address{}, Gas: 100000, GasPrice: big.NewInt(params.InitialBaseFee)})
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 		gen.AddWithdrawal(&types.Withdrawal{
 			Validator: 5,
 			Address:   common.Address{},

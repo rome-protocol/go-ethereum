@@ -183,7 +183,7 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, cancunBlock *big.Int, pe
 				Data:     []byte{},
 			}
 		}
-		b.AddTx(types.MustSignNewTx(key, signer, txdata))
+		b.AddTx(types.MustSignNewTx(key, signer, txdata), 0)
 
 		if cancunBlock != nil && b.Number().Cmp(cancunBlock) >= 0 {
 			b.SetPoS()
@@ -203,7 +203,7 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, cancunBlock *big.Int, pe
 					Value:      uint256.NewInt(100),
 					Sidecar:    nil,
 				}
-				b.AddTx(types.MustSignNewTx(key, signer, blobTx))
+				b.AddTx(types.MustSignNewTx(key, signer, blobTx), 0)
 			}
 		}
 		td += b.Difficulty().Uint64()

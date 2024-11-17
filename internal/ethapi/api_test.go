@@ -652,7 +652,7 @@ func TestEstimateGas(t *testing.T) {
 		//    value: 1000 wei
 		//    fee:   0 wei
 		tx, _ := types.SignTx(types.NewTx(&types.LegacyTx{Nonce: uint64(i), To: &accounts[1].addr, Value: big.NewInt(1000), Gas: params.TxGas, GasPrice: b.BaseFee(), Data: nil}), signer, accounts[0].key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 		b.SetPoS()
 	}))
 	var testSuite = []struct {
@@ -809,7 +809,7 @@ func TestCall(t *testing.T) {
 		//    value: 1000 wei
 		//    fee:   0 wei
 		tx, _ := types.SignTx(types.NewTx(&types.LegacyTx{Nonce: uint64(i), To: &accounts[1].addr, Value: big.NewInt(1000), Gas: params.TxGas, GasPrice: b.BaseFee(), Data: nil}), signer, accounts[0].key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 		b.SetPoS()
 	}))
 	randomAccounts := newAccounts(3)
@@ -1575,7 +1575,7 @@ func TestRPCGetBlockOrHeader(t *testing.T) {
 		//    value: 1000 wei
 		//    fee:   0 wei
 		tx, _ := types.SignTx(types.NewTx(&types.LegacyTx{Nonce: uint64(i), To: &acc2Addr, Value: big.NewInt(1000), Gas: params.TxGas, GasPrice: b.BaseFee(), Data: nil}), signer, acc1Key)
-		b.AddTx(tx)
+		b.AddTx(tx, 0)
 	})
 	backend.setPendingBlock(pending)
 	api := NewBlockChainAPI(backend)
@@ -1873,7 +1873,7 @@ func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Ha
 			t.Errorf("failed to sign tx: %v", err)
 		}
 		if tx != nil {
-			b.AddTx(tx)
+			b.AddTx(tx, 0)
 			txHashes[i] = tx.Hash()
 		}
 	})

@@ -174,7 +174,7 @@ func (tc *testChain) generate(n int, seed byte, parent *types.Block, heavy bool)
 			if err != nil {
 				panic(err)
 			}
-			block.AddTx(tx)
+			block.AddTx(tx, 0)
 		}
 		// if the block number is a multiple of 5, add a bonus uncle to the block
 		if i > 0 && i%5 == 0 {

@@ -70,7 +70,7 @@ func TestReimportMirroredState(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			block.AddTxWithChain(chain, tx)
+			block.AddTxWithChain(chain, tx, 0)
 		}
 	})
 	for i, block := range blocks {

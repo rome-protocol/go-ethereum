@@ -492,19 +492,19 @@ func TestProcessVerkle(t *testing.T) {
 
 		// TODO need to check that the tx cost provided is the exact amount used (no remaining left-over)
 		tx, _ := types.SignTx(types.NewTransaction(uint64(i)*3, common.Address{byte(i), 2, 3}, big.NewInt(999), txCost1, big.NewInt(875000000), nil), signer, testKey)
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 		tx, _ = types.SignTx(types.NewTransaction(uint64(i)*3+1, common.Address{}, big.NewInt(999), txCost1, big.NewInt(875000000), nil), signer, testKey)
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 		tx, _ = types.SignTx(types.NewTransaction(uint64(i)*3+2, common.Address{}, big.NewInt(0), txCost2, big.NewInt(875000000), nil), signer, testKey)
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 
 		// Add two contract creations in block #2
 		if i == 1 {
 			tx, _ = types.SignTx(types.NewContractCreation(6, big.NewInt(16), 3000000, big.NewInt(875000000), code), signer, testKey)
-			gen.AddTx(tx)
+			gen.AddTx(tx, 0)
 
 			tx, _ = types.SignTx(types.NewContractCreation(7, big.NewInt(0), 3000000, big.NewInt(875000000), codeWithExtCodeCopy), signer, testKey)
-			gen.AddTx(tx)
+			gen.AddTx(tx, 0)
 		}
 	})
 

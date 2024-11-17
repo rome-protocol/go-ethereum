@@ -247,8 +247,8 @@ func generateTestChain() []*types.Block {
 		g.SetExtra([]byte("test"))
 		if i == 1 {
 			// Test transactions are included in block #2.
-			g.AddTx(testTx1)
-			g.AddTx(testTx2)
+			g.AddTx(testTx1, 0)
+			g.AddTx(testTx2, 0)
 		}
 	}
 	_, blocks, _ := core.GenerateChainWithGenesis(genesis, ethash.NewFaker(), 2, generate)

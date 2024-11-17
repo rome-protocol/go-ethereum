@@ -199,7 +199,7 @@ func TestFilters(t *testing.T) {
 				To:       &contract,
 				Data:     data,
 			}), signer, key1)
-			gen.AddTx(tx)
+			gen.AddTx(tx, 0)
 			tx2, _ := types.SignTx(types.NewTx(&types.LegacyTx{
 				Nonce:    1,
 				GasPrice: gen.BaseFee(),
@@ -207,7 +207,7 @@ func TestFilters(t *testing.T) {
 				To:       &contract2,
 				Data:     data,
 			}), signer, key1)
-			gen.AddTx(tx2)
+			gen.AddTx(tx2, 0)
 		case 2:
 			data, err := contractABI.Pack("log2", hash2.Big(), hash1.Big())
 			if err != nil {
@@ -220,7 +220,7 @@ func TestFilters(t *testing.T) {
 				To:       &contract,
 				Data:     data,
 			}), signer, key1)
-			gen.AddTx(tx)
+			gen.AddTx(tx, 0)
 		case 998:
 			data, err := contractABI.Pack("log1", hash3.Big())
 			if err != nil {
@@ -233,7 +233,7 @@ func TestFilters(t *testing.T) {
 				To:       &contract2,
 				Data:     data,
 			}), signer, key1)
-			gen.AddTx(tx)
+			gen.AddTx(tx, 0)
 		case 999:
 			data, err := contractABI.Pack("log1", hash4.Big())
 			if err != nil {
@@ -246,7 +246,7 @@ func TestFilters(t *testing.T) {
 				To:       &contract,
 				Data:     data,
 			}), signer, key1)
-			gen.AddTx(tx)
+			gen.AddTx(tx, 0)
 		}
 	})
 	var l uint64
@@ -275,7 +275,7 @@ func TestFilters(t *testing.T) {
 			To:       &contract,
 			Data:     data,
 		}), signer, key1)
-		gen.AddTx(tx)
+		gen.AddTx(tx, 0)
 	})
 	backend.setPending(pchain[0], preceipts[0])
 
